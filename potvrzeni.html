@@ -121,6 +121,7 @@
     <div>
       <label for="datum">Datum vystavení</label>
       <input type="text" id="datum">
+      <div class="hint">Nastaví se samo na 20. den zvoleného měsíce – úřad bere jen datum ze stejného měsíce, za který se potvrzuje.</div>
     </div>
     <div class="full">
       <label for="role">Podepisuji jako</label>
@@ -185,15 +186,29 @@ MESICE.forEach((m, i) => {
   $('mesic').appendChild(o);
 });
 
-// --- výchozí hodnoty: minulý měsíc, dnešní datum ---
+// --- datum podpisu: vždy 20. den měsíce, za který se potvrzuje ---
+const DEN_PODPISU = 20;
+function nastavDatum(){
+  const rok = parseInt($('rok').value, 10);
+  if (isNaN(rok)) return;
+  $('datum').value = DEN_PODPISU + '.' + $('mesic').value + '.' + rok;
+}
+// datum musí ležet ve stejném měsíci a roce jako potvrzované období
+function datumSedi(){
+  const m = $('datum').value.trim().match(/^(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})$/);
+  if (!m) return false;
+  return Number(m[2]) === Number($('mesic').value) && Number(m[3]) === Number($('rok').value);
+}
+$('mesic').addEventListener('change', nastavDatum);
+$('rok').addEventListener('input', nastavDatum);
+
+// --- výchozí hodnoty: minulý měsíc, datum 20. dne toho měsíce ---
 (function () {
   const dnes = new Date();
   const min = new Date(dnes.getFullYear(), dnes.getMonth() - 1, 1);
   $('mesic').value = String(min.getMonth() + 1).padStart(2, '0');
   $('rok').value = min.getFullYear();
-  const dd = String(dnes.getDate()).padStart(2, '0');
-  const mm = String(dnes.getMonth() + 1).padStart(2, '0');
-  $('datum').value = dd + '.' + mm + '.' + dnes.getFullYear();
+  nastavDatum();
 })();
 
 function vybrany(){
@@ -285,6 +300,11 @@ $('f').addEventListener('submit', async ev => {
   if (!d.najemce || !d.adresa){
     msg.className = 'err';
     msg.textContent = 'Vyplň jméno a adresu nájemce.';
+    return;
+  }
+  if (!datumSedi()){
+    msg.className = 'err';
+    msg.textContent = 'Datum vystavení musí být ve stejném měsíci a roce jako potvrzované období (' + d.obdobi + ').';
     return;
   }
 
